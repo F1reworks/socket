@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 
@@ -15,10 +14,14 @@ import ru.necs.domain.spring.DomainConfig;
 import ru.vdm.socket.config.SocketConfig;
 import ru.vdm.socket.controller.SocketController;
 
+@Ignore
 public class TestServerSocket {
 
+	static {
+		System.setProperty("spring.profiles.active", "h2");
+	}
+
 	@Test
-	@Ignore
 	public void test() throws IOException {
 		SocketController controller = new SocketController(new ConfigService() {
 
@@ -33,15 +36,10 @@ public class TestServerSocket {
 		controller.startServer();
 	}
 
-	static {
-        System.setProperty("spring.profiles.active", "h2");
-    }
-	
 	@Test
 	public void testSpring() {
-		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketConfig.class, DomainConfig.class);
+		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketConfig.class,
+				DomainConfig.class);
 		context.close();
-		
 	}
-	
 }
