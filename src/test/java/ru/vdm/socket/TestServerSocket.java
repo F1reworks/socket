@@ -14,7 +14,7 @@ import ru.necs.domain.spring.DomainConfig;
 import ru.vdm.socket.config.SocketConfig;
 import ru.vdm.socket.controller.SocketController;
 
-@Ignore
+
 public class TestServerSocket {
 
 	static {
@@ -22,8 +22,10 @@ public class TestServerSocket {
 	}
 
 	@Test
+	@Ignore
 	public void test() throws IOException {
-		SocketController controller = new SocketController(new ConfigService() {
+		SocketController controller = new SocketController();
+		controller.setConfigService(new ConfigService() {
 
 			@Override
 			public Value lookup(Key key) {
@@ -32,14 +34,16 @@ public class TestServerSocket {
 				v.setValue(key.getName());
 				return v;
 			}
-		}, 7777, 1);
+		});
+		controller.setServerPort(7777);
 		controller.startServer();
 	}
 
 	@Test
 	public void testSpring() {
-		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketConfig.class,
+		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketTestConfig.class,
 				DomainConfig.class);
+		SocketController controller = context.getBean(SocketController.class);
 		context.close();
 	}
 }

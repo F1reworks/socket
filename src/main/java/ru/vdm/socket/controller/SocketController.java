@@ -18,29 +18,41 @@ import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.stereotype.Controller;
 
 import ru.necs.domain.service.ConfigService;
+import ru.necs.web.controller.spi.SPIController;
 import ru.vdm.socket.SocketHandler;
+import ru.vdm.socket.config.SocketConfig;
 
 @Controller
-public class SocketController {
+@Import(SocketConfig.class)
+public class SocketController extends SPIController {
 
 	private static final Logger LOGGER = getLogger(SocketController.class);
 
 	private ExecutorService executorService;
 
-	private final int concurrentThreads;
-	private final ServerSocket server;
+	private int concurrentThreads;
+	
+	@Autowired
+	public void setConcurrentThreads(int concurrentThreads) {
+		this.concurrentThreads = concurrentThreads;
+	}
+
+	private ServerSocket server;
 	private volatile boolean isStarted = false;
 
-	private final ConfigService service;
-
-	@Autowired
-	public SocketController(final ConfigService service, int port, int concurrentThreads) throws IOException {
-		this.service = notNull(service);
+	public void setServerPort(int port) throws IOException {
 		this.server = new ServerSocket(port);
-		this.concurrentThreads = concurrentThreads;
+	}
+
+	public void setConfigService(ConfigService service) {
+		this.service = service;
+	}
+
+	public SocketController() {
 	}
 
 	@PostConstruct
@@ -56,7 +68,10 @@ public class SocketController {
 					}
 				});
 		isStarted = true;
-		new Runnable() {
+		new Thread() {
+			{
+				setDaemon(false);
+			}
 
 			@Override
 			public void run() {
@@ -70,7 +85,7 @@ public class SocketController {
 					}
 				}
 			}
-		};
+		}.start();
 	}
 
 	@PreDestroy
