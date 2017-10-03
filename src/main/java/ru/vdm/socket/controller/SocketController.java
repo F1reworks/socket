@@ -1,6 +1,5 @@
 package ru.vdm.socket.controller;
 
-import static org.apache.commons.lang3.Validate.notNull;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
@@ -17,8 +16,8 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.stereotype.Controller;
 
 import ru.necs.domain.service.ConfigService;
@@ -27,7 +26,6 @@ import ru.vdm.socket.SocketHandler;
 import ru.vdm.socket.config.SocketConfig;
 
 @Controller
-@Import(SocketConfig.class)
 public class SocketController extends SPIController {
 
 	private static final Logger LOGGER = getLogger(SocketController.class);
@@ -35,28 +33,30 @@ public class SocketController extends SPIController {
 	private ExecutorService executorService;
 
 	private int concurrentThreads;
-	
-	@Autowired
+
 	public void setConcurrentThreads(int concurrentThreads) {
 		this.concurrentThreads = concurrentThreads;
 	}
 
-	private ServerSocket server;
-	private volatile boolean isStarted = false;
-
-	public void setServerPort(int port) throws IOException {
-		this.server = new ServerSocket(port);
+	public void setPort(int port) {
+		this.port = port;
 	}
 
 	public void setConfigService(ConfigService service) {
 		this.service = service;
 	}
 
+	private ServerSocket server;
+
+	private int port;
+	private volatile boolean isStarted = false;
+
 	public SocketController() {
 	}
 
 	@PostConstruct
-	public void startServer() {
+	public void startServer() throws IOException {
+		server = new ServerSocket(port);
 		BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(concurrentThreads * 2);
 		executorService = new ThreadPoolExecutor(concurrentThreads, concurrentThreads, 0L, TimeUnit.MILLISECONDS, queue,
 				new RejectedExecutionHandler() {
@@ -94,5 +94,13 @@ public class SocketController extends SPIController {
 		executorService.shutdownNow();
 		Thread.currentThread().interrupt();
 		server.close();
+	}
+
+	@Override
+	public void postInit() {
+		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketConfig.class);
+		this.concurrentThreads = (int) context.getBean("threads");
+		this.port = (int) context.getBean("port");
+		context.close();
 	}
 }

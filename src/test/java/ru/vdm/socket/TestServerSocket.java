@@ -1,6 +1,7 @@
 package ru.vdm.socket;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -11,7 +12,7 @@ import ru.necs.domain.model.Key;
 import ru.necs.domain.model.Value;
 import ru.necs.domain.service.ConfigService;
 import ru.necs.domain.spring.DomainConfig;
-import ru.vdm.socket.config.SocketConfig;
+import ru.necs.web.controller.spi.SPIController;
 import ru.vdm.socket.controller.SocketController;
 
 
@@ -35,7 +36,7 @@ public class TestServerSocket {
 				return v;
 			}
 		});
-		controller.setServerPort(7777);
+		controller.setPort(7777);
 		controller.startServer();
 	}
 
@@ -43,7 +44,7 @@ public class TestServerSocket {
 	public void testSpring() {
 		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketTestConfig.class,
 				DomainConfig.class);
-		SocketController controller = context.getBean(SocketController.class);
+		SPIController controller = (SPIController) context.getBean("getSpiController");
 		context.close();
 	}
 }
