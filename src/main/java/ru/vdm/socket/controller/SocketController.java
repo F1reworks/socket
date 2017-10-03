@@ -25,12 +25,13 @@ import ru.necs.web.controller.spi.SPIController;
 import ru.vdm.socket.SocketHandler;
 import ru.vdm.socket.config.SocketConfig;
 
-@Controller
 public class SocketController extends SPIController {
 
 	private static final Logger LOGGER = getLogger(SocketController.class);
 
 	private ExecutorService executorService;
+
+	protected ConfigService service;
 
 	private int concurrentThreads;
 
@@ -54,9 +55,23 @@ public class SocketController extends SPIController {
 	public SocketController() {
 	}
 
-	@PostConstruct
-	public void startServer() throws IOException {
-		server = new ServerSocket(port);
+	public void startServer() {
+		synchronized (this) {
+			if (!isStarted) {
+				try {
+					server = new ServerSocket(port);
+					isStarted = true;
+				} catch (IOException e) {
+					LOGGER.error("Cannot start server", e);
+				}
+
+			} else {
+				// already started
+				LOGGER.warn("Try to start already running server");
+				return;
+			}
+		}
+
 		BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(concurrentThreads * 2);
 		executorService = new ThreadPoolExecutor(concurrentThreads, concurrentThreads, 0L, TimeUnit.MILLISECONDS, queue,
 				new RejectedExecutionHandler() {
@@ -67,12 +82,8 @@ public class SocketController extends SPIController {
 
 					}
 				});
-		isStarted = true;
-		new Thread() {
-			{
-				setDaemon(false);
-			}
 
+		new Thread() {
 			@Override
 			public void run() {
 				while (isStarted) {
@@ -81,26 +92,32 @@ public class SocketController extends SPIController {
 						socket = server.accept();
 						executorService.execute(new SocketHandler(socket, service));
 					} catch (IOException e) {
-						LOGGER.error("Cannot start Socket server", e);
+						LOGGER.error("Connection reset may be shutdown in progress", e);
 					}
 				}
 			}
 		}.start();
 	}
 
-	@PreDestroy
-	public void stopServer() throws IOException {
+	@Override
+	public void destroy() {
 		isStarted = false;
 		executorService.shutdownNow();
 		Thread.currentThread().interrupt();
-		server.close();
+		try {
+			server.close();
+		} catch (IOException e) {
+			LOGGER.error("Cannot close server connection", e);
+		}
 	}
 
 	@Override
-	public void postInit() {
+	public void init(ConfigService service) {
 		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketConfig.class);
 		this.concurrentThreads = (int) context.getBean("threads");
 		this.port = (int) context.getBean("port");
+		this.service = service;
 		context.close();
+		startServer();
 	}
 }

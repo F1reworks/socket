@@ -44,7 +44,8 @@ public class TestServerSocket {
 	public void testSpring() {
 		AbstractApplicationContext context = new AnnotationConfigApplicationContext(SocketTestConfig.class,
 				DomainConfig.class);
-		SPIController controller = (SPIController) context.getBean("getSpiController");
+		List<SPIController> controller = (List<SPIController>) context.getBean("getSpiController");
 		context.close();
+		System.out.println("END");
 	}
 }
