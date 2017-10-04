@@ -28,8 +28,6 @@ public class SocketHandler implements Runnable {
 	private final ConfigService service;
 
 	public SocketHandler(Socket socket, ConfigService service) {
-		Validate.notNull(socket);
-		Validate.notNull(service);
 		this.socket = socket;
 		this.service = service;
 	}
