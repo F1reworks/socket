@@ -43,8 +43,8 @@ public class SocketHandler implements Runnable {
 	public void run() {
 		Validate.isTrue(socket.isConnected());
 		Validate.isTrue(!socket.isClosed());
-		try (BufferedReader bufReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				BufferedWriter bufWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))) {
+		try (Socket socketClosable = socket;BufferedReader bufReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				BufferedWriter bufWriter = new BufferedWriter(new OutputStreamWriter(socketClosable.getOutputStream()))) {
 			String input = bufReader.readLine();
 			LOGGER.info(String.format("Get input: %s", input));
 			try {
@@ -57,13 +57,7 @@ public class SocketHandler implements Runnable {
 			bufWriter.flush();
 		} catch (IOException e) {
 			LOGGER.error("Socket io exception", e);
-		} finally {
-			try {
-				socket.close();
-			} catch (IOException e) {
-				LOGGER.error("Cannot close socket", e);
-			}
-		}
+		} 
 	}
 
 	public void rejectTask() {
